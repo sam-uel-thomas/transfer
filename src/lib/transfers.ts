@@ -42,6 +42,19 @@ export async function listTransfers(ownerId: string): Promise<TransferRow[]> {
   return (data ?? []) as TransferRow[];
 }
 
+/** Name of the first file of each transfer, for one-line summaries. */
+export async function getFirstFileNames(transferIds: string[]): Promise<Map<string, string>> {
+  if (transferIds.length === 0) return new Map();
+  const { data, error } = await db()
+    .from("files")
+    .select("transfer_id, name")
+    .in("transfer_id", transferIds)
+    .eq("position", 0);
+  if (error) throw new Error(`Could not load file names: ${error.message}`);
+  const rows = (data ?? []) as Pick<FileRow, "transfer_id" | "name">[];
+  return new Map(rows.map((row) => [row.transfer_id, row.name]));
+}
+
 /** Expired by status (cron has run) or by clock (cron has not run yet). */
 export function isExpired(transfer: Pick<TransferRow, "status" | "expires_at">): boolean {
   return transfer.status === "expired" || new Date(transfer.expires_at).getTime() <= Date.now();

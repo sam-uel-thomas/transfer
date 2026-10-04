@@ -1,26 +1,241 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Design tokens. Three colours, one typeface, no radii, no shadows.
+ * `fg` / `bg` are the working pair: they swap when the page inverts
+ * (data-invert), so components never reference ink or paper directly.
+ */
+@theme {
+  --color-*: initial;
+  --color-paper: #f4f4f1;
+  --color-ink: #0a0a0a;
+  --color-accent: #ff3b00;
+
+  /* Helvetica only. Mono is mapped to the same stack so nothing else can load. */
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  --radius-*: initial;
+  --shadow-*: initial;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-fg: var(--fg);
+  --color-bg: var(--bg);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --fg: var(--color-ink);
+  --bg: var(--color-paper);
+}
+
+[data-invert="true"] {
+  --fg: var(--color-paper);
+  --bg: var(--color-ink);
+}
+
+@layer base {
+  html {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-size: 1rem;
+    line-height: 1.45;
+    font-kerning: normal;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--fg);
+    color: var(--bg);
+  }
+
+  :focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+  }
+
+  button,
+  input,
+  textarea,
+  a {
+    border-radius: 0;
+  }
+
+  input,
+  textarea {
+    appearance: none;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  ::placeholder {
+    color: currentColor;
+    opacity: 0.45;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* --- Type scale ---------------------------------------------------------- */
+
+/* Display: the one oversized moment per screen. */
+@utility text-display {
+  /* 20vw keeps the widest one-word headline ("Transfers") inside a phone. */
+  font-size: 20vw;
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  /* Optical alignment: pull the glyph's side bearing onto the grid line. */
+  margin-inline-start: -0.045em;
+
+  @media (min-width: 48rem) {
+    font-size: clamp(5rem, 14vw, 14rem);
+  }
+}
+
+@utility text-headline {
+  font-size: clamp(2.5rem, 7vw, 6.5rem);
+  font-weight: 700;
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  margin-inline-start: -0.04em;
+}
+
+@utility text-title {
+  font-size: clamp(1.375rem, 2.2vw, 2rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+}
+
+@utility text-lead {
+  font-size: clamp(1.125rem, 1.5vw, 1.375rem);
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+}
+
+/* Small uppercase label, 11px rising to 12px. */
+@utility label {
+  font-size: 0.6875rem;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  @media (min-width: 48rem) {
+    font-size: 0.75rem;
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Secondary text. Opacity rather than a grey, so it follows inversion. */
+@utility muted {
+  opacity: 0.62;
+}
+
+/* --- Layout -------------------------------------------------------------- */
+
+@utility gutter {
+  padding-inline: 1rem;
+
+  @media (min-width: 48rem) {
+    padding-inline: 2rem;
+  }
+
+  @media (min-width: 80rem) {
+    padding-inline: 2.5rem;
+  }
+}
+
+@utility grid-12 {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  column-gap: 0.75rem;
+
+  @media (min-width: 48rem) {
+    column-gap: 1.5rem;
+  }
+}
+
+/* 1px hairline in the current text colour. */
+@utility rule-t {
+  border-top: 1px solid currentColor;
+}
+
+@utility rule-b {
+  border-bottom: 1px solid currentColor;
+}
+
+/* --- Motion -------------------------------------------------------------- */
+
+/*
+ * Page-load reveal for server-rendered content. Pure CSS so the page is
+ * readable before (or without) hydration. Stagger with style="--i: n".
+ */
+@utility reveal {
+  animation: reveal 0.4s var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
+
+@utility loading-rule {
+  position: relative;
+  height: 1px;
+  overflow: hidden;
+  background: color-mix(in srgb, currentColor 20%, transparent);
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: currentColor;
+    transform-origin: left;
+    animation: loading-rule 1.2s var(--ease-out) infinite;
+  }
+}
+
+@keyframes loading-rule {
+  from {
+    transform: scaleX(0);
+  }
+  60% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
