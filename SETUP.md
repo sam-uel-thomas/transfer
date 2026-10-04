@@ -34,13 +34,14 @@ the other into `CRON_SECRET`. Run this twice:
 openssl rand -base64 32
 ```
 
-Set `ALLOWED_EMAIL` to the one address that may sign in. Leave
+Set `ALLOWED_EMAIL` to the email address you will sign in with. Your account
+is created for that address in step 2.4. Leave
 `APP_URL=http://localhost:3000` for now.
 
 | Variable | Where it comes from |
 | --- | --- |
 | `APP_URL` | The origin you open in the browser. No trailing slash. |
-| `ALLOWED_EMAIL` | Your email address. |
+| `ALLOWED_EMAIL` | The email address of your account (step 2.4). |
 | `SUPABASE_URL` | Supabase, step 2.3 |
 | `SUPABASE_ANON_KEY` | Supabase, step 2.3 |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase, step 2.3 |
@@ -98,57 +99,53 @@ using the service role key, touches these tables.
 
 The service role key bypasses RLS. It is only ever read on the server.
 
-### 2.4 Auth URLs
+### 2.4 Create your account
 
-**Authentication > URL Configuration**:
+There is no sign-up page and no sign-in email. Your account is created once,
+from your own machine, with a password you choose.
 
-- **Site URL**: your production URL, for example `https://transfer.example.com`
-- **Redirect URLs**, add both:
-  - `http://localhost:3000/auth/confirm`
-  - `https://transfer.example.com/auth/confirm`
+Fill in `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and `ALLOWED_EMAIL` in
+`.env.local`, install dependencies if you have not yet:
 
-A magic link that redirects to a URL missing from this list fails.
-
-### 2.5 Email provider
-
-**Authentication > Sign In / Providers > Email** must be enabled (it is by
-default).
-
-Supabase's built-in mail server is for testing only: it is limited to a
-couple of emails per hour and only delivers to members of your Supabase
-organisation. Since you will have Resend anyway, point Supabase at it under
-**Authentication > Emails > SMTP Settings** once step 4 is done:
-
-| Field | Value |
-| --- | --- |
-| Host | `smtp.resend.com` |
-| Port | `465` |
-| Username | `resend` |
-| Password | your Resend API key |
-| Sender email | an address on your verified domain |
-
-### 2.6 Optional: links that work across devices
-
-With Supabase's default email template, the sign-in link must be opened in
-the same browser that requested it. To be able to request on one device and
-open on another, change two templates under **Authentication > Emails**
-(**Magic Link** and **Confirm signup**) so the link reads:
-
-```html
-<a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email">Sign in</a>
+```bash
+npm install
 ```
 
-The app accepts both link styles, so this is optional.
+Then run:
 
-### 2.7 Optional: close sign-ups after your first login
+```bash
+npm run create-user
+```
 
-Your user is created the first time you sign in. After that you can turn off
-**Allow new users to sign up** under **Authentication > Sign In / Providers**.
+It asks for a password twice (at least 12 characters; nothing is shown as
+you type) and creates a confirmed account for `ALLOWED_EMAIL`. The password
+is sent straight to Supabase and is not written to any file.
 
-This is tidiness, not a security requirement. The app only ever requests a
-magic link for `ALLOWED_EMAIL`, and every page and API route re-checks that
-the session belongs to that address. A stranger who created a Supabase user
-some other way would still be refused everywhere.
+This password is the only thing protecting uploads to your storage, so make
+it long and unique. A password manager's generated one is ideal.
+
+**To change or reset the password**, run the same command again. It updates
+the existing account. One account serves both local development and
+production, as long as both use the same Supabase project.
+
+Prefer the dashboard? **Authentication > Users > Add user > Create new
+user**, enter the same email as `ALLOWED_EMAIL` and a password, and tick
+**Auto Confirm User**.
+
+The email provider must stay enabled under **Authentication > Sign In /
+Providers > Email** (it is by default). No SMTP or email template setup is
+needed, because Supabase never sends you anything.
+
+### 2.5 Turn off sign-ups
+
+Now that your account exists, nobody else needs one. Under
+**Authentication > Sign In / Providers**, turn off **Allow new users to sign
+up**.
+
+The app does not depend on this: it has no sign-up page, and every page and
+API route checks that the session belongs to `ALLOWED_EMAIL`, so any other
+Supabase user is refused everywhere. Turning sign-ups off removes the
+possibility altogether.
 
 ---
 
@@ -259,9 +256,9 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:3000>. You are sent to `/login`. Enter
-`ALLOWED_EMAIL`, open the link from the email in the same browser, and you
-land on the upload screen.
+Open <http://localhost:3000>. You are sent to `/login`. Sign in with
+`ALLOWED_EMAIL` and the password from step 2.4, and you land on the upload
+screen.
 
 The cron job does not run locally. Trigger it by hand when you want to test
 expiry (use the value of `CRON_SECRET` from `.env.local`):
@@ -295,11 +292,10 @@ Redeploy after adding or changing variables.
 ### 6.3 Domain
 
 **Project > Settings > Domains**. Add your domain, then make sure the same
-origin appears in three places:
+origin appears in both places:
 
 1. `APP_URL` in Vercel
-2. Supabase **Redirect URLs** (step 2.4), with `/auth/confirm`
-3. The R2 CORS rule (step 3.2)
+2. The R2 CORS rule (step 3.2)
 
 ### 6.4 Cron
 
@@ -326,7 +322,8 @@ working the moment it expires, whether or not the cron has run yet.
 
 Run through this once on production:
 
-1. Sign in at `/login`. A different email address must not receive a link.
+1. Sign in at `/login`. A wrong password is refused, and so is any other
+   email address.
 2. Send a small file. The link opens in a private window and downloads with
    its original filename.
 3. Send a file over 100 MB. This uses multipart upload; watch the
@@ -355,14 +352,18 @@ and port. CORS changes can take a minute to apply.
 **Uploads return 403 `SignatureDoesNotMatch`.** Almost always wrong R2
 credentials or account ID, or a token without write access to this bucket.
 
-**"That sign-in link is invalid or has expired."** Either the link was
-opened in a different browser from the one that requested it (see step
-2.6), it was already used, or the `/auth/confirm` URL is missing from
-Supabase's Redirect URLs.
+**"Wrong email or password."** The page says this for every failed sign-in,
+on purpose. Check that the email you type is exactly `ALLOWED_EMAIL` in the
+environment you are using (local and Vercel are set separately), and that
+the account exists under **Authentication > Users** in Supabase. If in
+doubt, run `npm run create-user` again to set a fresh password. The real
+reason for a failure is in the server log (the terminal locally, **Logs**
+on Vercel).
 
-**No sign-in email arrives.** Supabase's built-in mail server is heavily
-rate limited. Set up SMTP through Resend (step 2.5) and check
-**Authentication > Logs** in Supabase.
+**Forgot the password.** There is no reset email. Run
+`npm run create-user` again.
+
+**"Too many attempts."** Supabase rate-limits sign-ins. Wait a minute.
 
 **No recipient email.** The "Sent" screen says when sending failed. Check
 that `EMAIL_FROM` uses a verified domain, then look at the Resend dashboard
@@ -394,8 +395,13 @@ always download.
   disk at any size. Safari, Firefox and phones have to build it in memory
   first, so there the zip is offered up to 1 GB (300 MB on phones); above
   that the page asks the recipient to save files one by one.
-- **Passwords.** Stored as a bcrypt hash and never emailed; share the
-  password yourself. Eight wrong attempts in a row lock a transfer for 15
+- **Signing in.** Email and password, checked by Supabase Auth. The session
+  cookie is httpOnly and you stay signed in on that browser until you sign
+  out. There is no
+  sign-up page, no reset email and no lockout beyond Supabase's own rate
+  limit on sign-in attempts, so the strength of your password matters.
+- **Transfer passwords.** Stored as a bcrypt hash and never emailed; share
+  the password yourself. Eight wrong attempts in a row lock a transfer for 15
   minutes. A correct password is remembered for 30 minutes.
 - **Delete now.** Removes the files from R2 and the transfer from the
   database. The link then shows the not-found page.

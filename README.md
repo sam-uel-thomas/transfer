@@ -24,8 +24,8 @@ Supabase, Cloudflare R2, Resend and Vercel.
 ## Stack
 
 Next.js 16 (App Router), TypeScript, Tailwind CSS 4, Supabase (Postgres and
-magic-link Auth), Cloudflare R2 through the S3 API, headless Uppy, Resend,
-motion, client-zip. Deploys to Vercel.
+email/password Auth), Cloudflare R2 through the S3 API, headless Uppy,
+Resend, motion, client-zip. Deploys to Vercel.
 
 ## Commands
 
@@ -35,6 +35,7 @@ motion, client-zip. Deploys to Vercel.
 | `npm run build` | Production build |
 | `npm run typecheck` | TypeScript, no emit |
 | `npm run lint` | ESLint |
+| `npm run create-user` | Create your account, or set a new password |
 
 ## Where things are
 
@@ -50,14 +51,17 @@ motion, client-zip. Deploys to Vercel.
 | `src/components/uploader/` | Upload UI and the Uppy session |
 | `src/lib/r2.ts` | All R2 calls and presigning |
 | `src/lib/auth.ts` | Session and `ALLOWED_EMAIL` check |
+| `src/app/login/` | Sign-in page and action |
+| `scripts/create-user.mjs` | Account creation and password reset |
 | `src/lib/access.ts` | Signed cookies for password access |
 | `src/app/globals.css` | Design tokens and type scale |
 | `supabase/migrations/` | Database schema |
 
 ## Security model
 
-- Only `ALLOWED_EMAIL` can sign in. Every uploader page and API route
-  verifies the session and that address on the server.
+- One account, created with `npm run create-user`, signs in with an email
+  and password. There is no sign-up page. Every uploader page and API route
+  verifies the session and that it belongs to `ALLOWED_EMAIL` on the server.
 - Both tables have Row Level Security enabled with no policies, so the
   public Supabase keys can read nothing. The server uses the service role
   key, which is never sent to the browser.

@@ -59,11 +59,12 @@ export function Field({
   error,
   id,
   className,
+  style,
   ...props
 }: FieldProps & ComponentProps<"input"> & { id: string }) {
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   return (
-    <div className={className}>
+    <div className={className} style={style}>
       <div className="label flex items-baseline justify-between gap-4">
         <label htmlFor={id}>{label}</label>
         {hint ? (
