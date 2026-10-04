@@ -313,7 +313,11 @@ export class UploadSession {
         error instanceof ApiError
           ? error.message
           : "The connection dropped and retries ran out. Check your network, then retry.";
-      if (file) this.#setFile(keyOf(file), { status: "error" }, true);
+      if (!file) return;
+      // A single-PUT file starts again from zero on retry; a multipart file
+      // keeps the parts it already stored.
+      const resumable = (file.size ?? 0) > MULTIPART_THRESHOLD_BYTES;
+      this.#setFile(keyOf(file), resumable ? { status: "error" } : { status: "error", bytes: 0 }, true);
     });
 
     return uppy;

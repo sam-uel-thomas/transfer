@@ -218,7 +218,7 @@ export function DownloadView({
       <PublicHeader aside={`Expires in ${expiresIn}`} />
 
       <main className="gutter flex flex-1 flex-col pt-5 pb-14 md:pt-6">
-        <Eyebrow left="Sent to you" right={single ? "One file" : "Files"} />
+        <Eyebrow left="Sent to you" />
 
         {/* The big moment: how much, and how heavy. */}
         <h1 className="text-display py-10 md:py-12">
@@ -274,7 +274,7 @@ export function DownloadView({
           </section>
 
           <div
-            className={`col-span-12 grid grid-cols-subgrid content-start lg:col-span-7 lg:col-start-1 ${message ? "lg:row-start-2" : "lg:row-start-1"}`}
+            className={`max-md:rule-t col-span-12 grid grid-cols-subgrid content-start lg:col-span-7 lg:col-start-1 ${message ? "lg:row-start-2" : "lg:row-start-1"}`}
           >
             <FileTable label="Files in this transfer" columns="narrow" trailingLabel="Save">
               {files.map((file, index) => (
@@ -289,7 +289,7 @@ export function DownloadView({
                 >
                   <button
                     type="button"
-                    className="label underline-offset-4 hover:underline disabled:opacity-40"
+                    className="label -m-3 p-3 underline-offset-4 hover:underline disabled:opacity-40"
                     aria-label={`Download ${file.name}`}
                     disabled={busy || pendingFile !== null}
                     onClick={() => downloadFile(file)}

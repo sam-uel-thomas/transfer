@@ -298,7 +298,7 @@ export function Uploader({ header, appUrl }: { header: ReactNode; appUrl: string
                         >
                           <button
                             type="button"
-                            className="label underline-offset-4 hover:underline"
+                            className="label -m-3 p-3 underline-offset-4 hover:underline"
                             aria-label={`Remove ${picked.name}`}
                             onClick={() => setFiles((current) => current.filter((file) => file.key !== picked.key))}
                           >

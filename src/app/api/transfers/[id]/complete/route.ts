@@ -38,7 +38,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (incomplete.length > 0) {
       throw new HttpError(
         409,
-        `${pluralize(incomplete.length, "file")} did not upload completely. Retry to finish.`,
+        `${pluralize(incomplete.length, "file")} did not arrive intact. Cancel and send again.`,
         "incomplete",
       );
     }
