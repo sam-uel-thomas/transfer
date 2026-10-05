@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { Headline } from "@/components/headline";
 import { PublicHeader } from "@/components/site-header";
 import { StatePage } from "@/components/state-page";
 import { Eyebrow } from "@/components/ui";
@@ -39,7 +40,7 @@ export default async function TransferPage({ params }: { params: Promise<{ id: s
         <PublicHeader aside={`Expires in ${expiresIn}`} />
         <main className="gutter flex flex-1 flex-col justify-between pt-5 pb-8 md:pt-6">
           <Eyebrow left="Sent to you" right="Password required" />
-          <h1 className="text-display reveal py-12">Locked.</h1>
+          <Headline className="text-display py-12" lines={["Locked."]} />
           <PasswordGate id={id} />
         </main>
       </div>

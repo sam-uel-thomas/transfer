@@ -19,6 +19,8 @@
   --shadow-*: initial;
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Slow in, slow out: for wipes that cross the whole screen. */
+  --ease-wipe: cubic-bezier(0.76, 0, 0.24, 1);
 }
 
 @theme inline {
@@ -29,6 +31,16 @@
 :root {
   --fg: var(--color-ink);
   --bg: var(--color-paper);
+  /*
+   * On a fresh page load, entrance animations wait for the intro curtain to
+   * start lifting. Once it has gone (data-ready), in-app navigations and
+   * view changes start immediately.
+   */
+  --intro: 280ms;
+}
+
+html[data-ready] {
+  --intro: 0ms;
 }
 
 [data-invert="true"] {
@@ -41,6 +53,8 @@
     background: var(--color-paper);
     color: var(--color-ink);
     -webkit-text-size-adjust: 100%;
+    /* Reserve the scrollbar's width so content does not shift when a page grows. */
+    scrollbar-gutter: stable;
   }
 
   body {
@@ -85,6 +99,26 @@
   ::placeholder {
     color: currentColor;
     opacity: 0.45;
+    transition: opacity 0.2s var(--ease-out);
+  }
+
+  :focus::placeholder {
+    opacity: 0.2;
+  }
+
+  /*
+   * Browsers paint their own tint behind autofilled fields. A transition
+   * that never finishes keeps the page's colours instead.
+   */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill {
+    -webkit-text-fill-color: var(--fg);
+    caret-color: var(--fg);
+    transition:
+      background-color 600000s 0s,
+      color 600000s 0s;
   }
 }
 
@@ -185,12 +219,17 @@
 /* --- Motion -------------------------------------------------------------- */
 
 /*
- * Page-load reveal for server-rendered content. Pure CSS so the page is
- * readable before (or without) hydration. Stagger with style="--i: n".
+ * One motion idea, used at every scale: a wipe. The page changes behind a
+ * curtain, headlines rise from behind a mask, rules draw across, underlines
+ * and button fills sweep in. Everything here is CSS, so pages are readable
+ * before (or without) hydration; resting states are always the visible ones.
+ * Stagger with style="--i: n".
  */
+
+/* Fade and settle, for blocks of content. */
 @utility reveal {
-  animation: reveal 0.4s var(--ease-out) both;
-  animation-delay: calc(var(--i, 0) * 40ms);
+  animation: reveal 0.5s var(--ease-out) both;
+  animation-delay: calc(var(--intro) + var(--i, 0) * 40ms);
 }
 
 @keyframes reveal {
@@ -198,6 +237,182 @@
     opacity: 0;
     transform: translateY(0.75rem);
   }
+}
+
+/*
+ * Headline lines that rise from behind a mask. The padding leaves room for
+ * descenders, which the tight display line-height would otherwise clip.
+ */
+@utility line-mask {
+  display: block;
+  overflow: hidden;
+  padding-block: 0.08em 0.18em;
+  margin-block: -0.08em -0.18em;
+}
+
+@utility line-rise {
+  display: block;
+  animation: rise 0.9s var(--ease-out) both;
+  animation-delay: calc(var(--intro) + var(--i, 0) * 80ms);
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(125%);
+  }
+}
+
+/* Hairline that draws itself from left to right. Replaces rule-t / rule-b. */
+@utility draw-t {
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 1px;
+    background: currentColor;
+    transform-origin: left;
+    pointer-events: none;
+    animation: draw 0.9s var(--ease-wipe) both;
+    animation-delay: calc(var(--intro) + var(--i, 0) * 40ms);
+  }
+}
+
+@utility draw-b {
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 1px;
+    background: currentColor;
+    transform-origin: left;
+    pointer-events: none;
+    animation: draw 0.9s var(--ease-wipe) both;
+    animation-delay: calc(var(--intro) + var(--i, 0) * 40ms);
+  }
+}
+
+@keyframes draw {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* Underline that sweeps in from the left and leaves to the right. */
+@utility link-wipe {
+  padding-bottom: 2px;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 100% 100%;
+  background-size: 0% 1px;
+  transition: background-size 0.35s var(--ease-out);
+
+  &[aria-current="page"],
+  &[aria-pressed="true"] {
+    background-position: 0% 100%;
+    background-size: 100% 1px;
+  }
+
+  /* Also when it sits inside a hovered control with a larger hit area. */
+  @media (hover: hover) {
+    &:hover:not(:disabled),
+    :where(a, button):hover:not(:disabled) > & {
+      background-position: 0% 100%;
+      background-size: 100% 1px;
+    }
+  }
+}
+
+/*
+ * Text field: a quiet hairline at rest, full strength on hover, and a 2px
+ * line that sweeps across on focus. That line is the focus indicator, so the
+ * input itself drops the default outline.
+ */
+@utility field-line {
+  position: relative;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 50%, transparent);
+  transition: border-color 0.2s var(--ease-out);
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: -1px;
+    height: 2px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.45s var(--ease-out);
+    pointer-events: none;
+  }
+
+  &:focus-within::after,
+  &:has([aria-invalid="true"])::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      border-bottom-color: currentColor;
+    }
+  }
+
+  & :is(input, textarea) {
+    outline: none;
+  }
+}
+
+/* --- Page transition ---------------------------------------------------- */
+
+/* Covers the page while the route changes. Driven from page-transition.tsx. */
+.page-curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  visibility: hidden;
+  background: var(--color-ink);
+  color: var(--color-paper);
+  transform: translateY(100%);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.page-curtain[data-on] {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Lifts once on every fresh page load. Pure CSS; rests off-screen. */
+.intro-curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: var(--color-ink);
+  transform: translateY(-100%);
+  pointer-events: none;
+  animation: curtain-lift 0.7s var(--ease-wipe) 0.05s backwards;
+}
+
+@keyframes curtain-lift {
+  from {
+    transform: translateY(0);
+  }
+}
+
+/*
+ * While the route curtain is down, hold the new page's entrance animations
+ * at their first frame. They start as the curtain lifts.
+ */
+html[data-pt] :is(.reveal, .line-rise),
+html[data-pt] .draw-t::before,
+html[data-pt] .draw-b::after {
+  animation-play-state: paused;
 }
 
 @utility loading-rule {

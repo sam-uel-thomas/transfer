@@ -3,10 +3,13 @@ import type { Variants } from "motion/react";
 /** The one easing curve used everywhere. Matches --ease-out in globals.css. */
 export const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
-/** Whole-view swap: a short fade with a small upward settle. */
+/**
+ * Whole-view swap: a plain cross-fade. The movement comes from what is inside
+ * the view (headline lines rising, rules drawing), not from the view itself.
+ */
 export const viewTransition = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease: EASE_OUT } },
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: 0.3, ease: EASE_OUT } },
   exit: { opacity: 0, transition: { duration: 0.2, ease: EASE_OUT } },
 } as const;
 

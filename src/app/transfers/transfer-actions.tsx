@@ -6,7 +6,7 @@ import { useState, useTransition } from "react";
 import { CopyButton } from "@/components/copy-button";
 import { api, errorMessage } from "@/lib/api";
 
-const ACTION = "label underline-offset-4 hover:underline disabled:opacity-40";
+const ACTION = "label link-wipe disabled:opacity-40";
 
 /** Copy link and delete-now for one row. Delete asks once more, in place. */
 export function TransferActions({ id, url, live }: { id: string; url: string; live: boolean }) {

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { FileRow, FileTable } from "@/components/file-table";
+import { Headline } from "@/components/headline";
 import { PercentFigure, ProgressBar, useSmoothPercent } from "@/components/progress";
 import { PublicHeader } from "@/components/site-header";
 import { Button, Eyebrow } from "@/components/ui";
@@ -221,16 +222,14 @@ export function DownloadView({
         <Eyebrow left="Sent to you" />
 
         {/* The big moment: how much, and how heavy. */}
-        <h1 className="text-display py-10 md:py-12">
-          <span className="reveal block">{pluralize(files.length, "file")}</span>
-          <span className="reveal block" style={stagger(1)}>
-            {formatBytes(totalBytes)}
-          </span>
-        </h1>
+        <Headline
+          className="text-display py-10 md:py-12"
+          lines={[pluralize(files.length, "file"), formatBytes(totalBytes)]}
+        />
 
-        <div className="grid-12 rule-t gap-y-10 pt-4">
+        <div className="grid-12 draw-t gap-y-10 pt-4">
           {message ? (
-            <section className="reveal col-span-12 lg:col-span-7 lg:row-start-1" style={stagger(2)}>
+            <section className="reveal col-span-12 lg:col-span-7 lg:row-start-1" style={stagger(4)}>
               <h2 className="label muted mb-3">Message</h2>
               <p className="text-lead whitespace-pre-wrap break-words">{message}</p>
             </section>
@@ -239,7 +238,7 @@ export function DownloadView({
           <section
             aria-label="Download"
             className={`reveal col-span-12 lg:sticky lg:top-6 lg:col-span-4 lg:col-start-9 lg:row-start-1 lg:self-start ${message ? "lg:row-span-2" : ""}`}
-            style={stagger(3)}
+            style={stagger(5)}
           >
             {zipping ? (
               <div>
@@ -285,16 +284,16 @@ export function DownloadView({
                   size={file.size}
                   columns="narrow"
                   className="reveal"
-                  style={stagger(index + 4)}
+                  style={stagger(index + 6)}
                 >
                   <button
                     type="button"
-                    className="label -m-3 p-3 underline-offset-4 hover:underline disabled:opacity-40"
+                    className="label -m-3 p-3 disabled:opacity-40"
                     aria-label={`Download ${file.name}`}
                     disabled={busy || pendingFile !== null}
                     onClick={() => downloadFile(file)}
                   >
-                    {pendingFile === file.id ? "Wait" : "Save"}
+                    <span className="link-wipe">{pendingFile === file.id ? "Wait" : "Save"}</span>
                   </button>
                 </FileRow>
               ))}

@@ -51,7 +51,7 @@ export function FileTable({
   return (
     <div role="table" aria-label={label} className={SUBGRID}>
       <div role="rowgroup" className={SUBGRID}>
-        <div role="row" className={cn(SUBGRID, "label rule-b items-baseline pb-2 max-md:sr-only")}>
+        <div role="row" className={cn(SUBGRID, "label draw-b items-baseline pb-2 max-md:sr-only")}>
           <span role="columnheader" className={cn(cells.index, "muted")}>
             No.
           </span>

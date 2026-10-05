@@ -1,6 +1,5 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { isAllowedEmail } from "@/lib/auth";
@@ -12,6 +11,8 @@ export interface LoginState {
   email: string;
   /** Changes on every failed attempt so the UI can re-announce the error. */
   attempt: number;
+  /** Signed in. The form then moves on to the upload screen. */
+  ok?: true;
 }
 
 const schema = z.object({
@@ -54,5 +55,7 @@ export async function signIn(previous: LoginState, formData: FormData): Promise<
     return fail(WRONG);
   }
 
-  redirect("/");
+  // The session cookie is set by now. Navigation is left to the client so it
+  // can happen behind the page transition.
+  return { error: null, email, attempt: previous.attempt, ok: true };
 }

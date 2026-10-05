@@ -1,8 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 
-import { Button, Eyebrow, Field } from "@/components/ui";
+import { Field, PasswordField } from "@/components/field";
+import { Headline } from "@/components/headline";
+import { usePageTransition } from "@/components/page-transition";
+import { Button, Eyebrow } from "@/components/ui";
 import { stagger } from "@/lib/motion";
 
 import { signIn, type LoginState } from "./actions";
@@ -11,15 +14,23 @@ const INITIAL: LoginState = { error: null, email: "", attempt: 0 };
 
 export function LoginForm() {
   const [state, action, pending] = useActionState(signIn, INITIAL);
+  const { navigate } = usePageTransition();
+
+  // Signed in: the session cookie is set, so move on behind the curtain.
+  useEffect(() => {
+    if (state.ok) navigate("/", "New transfer");
+  }, [state.ok, navigate]);
+
+  const busy = pending || state.ok === true;
 
   return (
     <>
       <Eyebrow left="Sign in" right="Uploader only" />
-      <h1 className="text-display reveal py-12">Sign in.</h1>
-      <form action={action} className="grid-12 rule-t items-end gap-y-8 pt-4">
+      <Headline className="text-display py-12" lines={["Sign in."]} />
+      <form action={action} className="grid-12 draw-t items-end gap-y-8 pt-4">
         <Field
           className="reveal col-span-12 md:col-span-4"
-          style={stagger(2)}
+          style={stagger(4)}
           id="email"
           name="email"
           type="email"
@@ -33,12 +44,11 @@ export function LoginForm() {
           aria-describedby={state.error ? "login-problem" : undefined}
           required
         />
-        <Field
+        <PasswordField
           className="reveal col-span-12 md:col-span-4"
-          style={stagger(3)}
+          style={stagger(5)}
           id="password"
           name="password"
-          type="password"
           label="Password"
           autoComplete="current-password"
           aria-invalid={state.error ? true : undefined}
@@ -56,9 +66,9 @@ export function LoginForm() {
             {state.error}
           </p>
         ) : null}
-        <div className="reveal col-span-12 md:col-span-4 md:col-start-9 md:row-start-1" style={stagger(4)}>
-          <Button type="submit" variant="primary" disabled={pending}>
-            <span>{pending ? "Signing in" : "Sign in"}</span>
+        <div className="reveal col-span-12 md:col-span-4 md:col-start-9 md:row-start-1" style={stagger(6)}>
+          <Button type="submit" variant="primary" disabled={busy}>
+            <span>{busy ? "Signing in" : "Sign in"}</span>
           </Button>
         </div>
       </form>

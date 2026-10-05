@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
+import { Headline } from "@/components/headline";
+import { TransitionLink } from "@/components/page-transition";
 import { UploaderHeader } from "@/components/site-header";
 import { StatePage } from "@/components/state-page";
 import { buttonClass, cn, Eyebrow } from "@/components/ui";
@@ -43,9 +44,9 @@ export default async function TransfersPage() {
         detail="0 sent"
         title="Nothing sent yet."
         action={
-          <Link href="/" className={buttonClass("primary")}>
+          <TransitionLink href="/" label="New transfer" className={buttonClass("primary")}>
             <span>Send files</span>
-          </Link>
+          </TransitionLink>
         }
       >
         <p>Transfers you send appear here, with their size, expiry and download count.</p>
@@ -61,11 +62,11 @@ export default async function TransfersPage() {
       <UploaderHeader current="transfers" />
       <main className="gutter flex flex-1 flex-col pt-5 pb-14 md:pt-6">
         <Eyebrow left="Sent by you" right={`${live} live, ${transfers.length - live} expired`} />
-        <h1 className="text-display reveal py-10 md:py-12">Transfers</h1>
+        <Headline className="text-display py-10 md:py-12" lines={["Transfers"]} />
 
         <div role="table" aria-label="Your transfers" className="grid-12">
           <div role="rowgroup" className={SUBGRID}>
-            <div role="row" className={cn(SUBGRID, "label rule-b items-baseline pb-2 max-md:sr-only")}>
+            <div role="row" className={cn(SUBGRID, "label draw-b items-baseline pb-2 max-md:sr-only")}>
               <span role="columnheader" className={cn(COLUMNS.index, "muted")}>
                 No.
               </span>
@@ -99,7 +100,7 @@ export default async function TransfersPage() {
                   key={transfer.id}
                   role="row"
                   className={cn(SUBGRID, "rule-b reveal items-baseline gap-y-3 py-4")}
-                  style={stagger(index + 1)}
+                  style={stagger(index + 4)}
                 >
                   <span role="cell" className={cn(COLUMNS.index, "label tabular muted")}>
                     {rowNumber(index)}
@@ -107,7 +108,19 @@ export default async function TransfersPage() {
 
                   <div role="cell" className={cn(COLUMNS.name, "min-w-0", expired && "muted")}>
                     <p className="truncate font-bold" title={first}>
-                      {first}
+                      {expired ? (
+                        first
+                      ) : (
+                        <a
+                          href={`/t/${transfer.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="link-wipe"
+                          aria-label={`Open the download page for ${first} in a new tab`}
+                        >
+                          {first}
+                        </a>
+                      )}
                       {more > 0 ? <span className="font-normal"> +{more}</span> : null}
                     </p>
                     <p className="label muted truncate pt-1">

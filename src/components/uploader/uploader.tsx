@@ -13,9 +13,11 @@ import {
 } from "react";
 
 import { CopyButton } from "@/components/copy-button";
+import { Field, TextArea } from "@/components/field";
 import { FileRow, FileTable } from "@/components/file-table";
+import { Headline } from "@/components/headline";
 import { PercentFigure, ProgressBar, useSmoothPercent } from "@/components/progress";
-import { Button, Eyebrow, Field, TextArea } from "@/components/ui";
+import { Button, Eyebrow } from "@/components/ui";
 import { ApiError, errorMessage } from "@/lib/api";
 import {
   EXPIRY_OPTIONS,
@@ -49,6 +51,7 @@ export function Uploader({ header, appUrl }: { header: ReactNode; appUrl: string
   const [notice, setNotice] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [online, setOnline] = useState(true);
+  const [emailTouched, setEmailTouched] = useState(false);
 
   const session = useRef<UploadSession | null>(null);
   const picker = useRef<HTMLInputElement>(null);
@@ -167,8 +170,10 @@ export function Uploader({ header, appUrl }: { header: ReactNode; appUrl: string
       : files.length > MAX_FILES_PER_TRANSFER
         ? `At most ${MAX_FILES_PER_TRANSFER} files per transfer. Zip folders with many small files first.`
         : null;
-  const emailError = recipient && !EMAIL_PATTERN.test(recipient) ? "Enter a valid email address." : null;
-  const canSend = files.length > 0 && !problem && !emailError && !submitting;
+  const emailInvalid = recipient !== "" && !EMAIL_PATTERN.test(recipient);
+  // Shown once the field has been left, so it does not nag on the first keystroke.
+  const emailError = emailInvalid && emailTouched ? "Enter a valid email address." : null;
+  const canSend = files.length > 0 && !problem && !emailInvalid && !submitting;
 
   async function send(event: FormEvent) {
     event.preventDefault();
@@ -205,6 +210,7 @@ export function Uploader({ header, appUrl }: { header: ReactNode; appUrl: string
     setFiles([]);
     setOptions(DEFAULT_OPTIONS);
     setNotice(null);
+    setEmailTouched(false);
   }
 
   return (
@@ -234,11 +240,8 @@ export function Uploader({ header, appUrl }: { header: ReactNode; appUrl: string
               className="gutter relative flex flex-1 flex-col justify-between pt-5 pb-6 md:pt-6 md:pb-8"
             >
               <Eyebrow left="New transfer" right={`Up to ${formatBytes(MAX_TRANSFER_BYTES)}`} />
-              <h1 className="text-display py-12">
-                <span className="block md:inline">Send </span>
-                <span className="block md:inline">files.</span>
-              </h1>
-              <div className="grid-12 rule-t items-baseline gap-y-2 pt-4">
+              <Headline className="text-display py-12" lines={["Send", "files."]} inline />
+              <div className="grid-12 draw-t items-baseline gap-y-2 pt-4">
                 <p className="text-title col-span-12 md:col-span-7">
                   {dragging ? (
                     "Drop to add."
@@ -275,11 +278,17 @@ export function Uploader({ header, appUrl }: { header: ReactNode; appUrl: string
                 left={dragging ? "Drop to add" : "New transfer"}
                 right={`${formatBytes(totalBytes)} of ${formatBytes(MAX_TRANSFER_BYTES)}`}
               />
-              <h1 className="text-headline py-8 md:py-12">
-                {pluralize(files.length, "file")}, <span className="whitespace-nowrap">{formatBytes(totalBytes)}</span>
-              </h1>
+              <Headline
+                className="text-headline py-8 md:py-12"
+                lines={[
+                  <>
+                    {pluralize(files.length, "file")},{" "}
+                    <span className="whitespace-nowrap">{formatBytes(totalBytes)}</span>
+                  </>,
+                ]}
+              />
 
-              <div className="grid-12 rule-t gap-y-12 pt-4">
+              <div className="grid-12 draw-t gap-y-12 pt-4">
                 <div className="col-span-12 grid grid-cols-subgrid content-start lg:col-span-7">
                   <FileTable label="Files to send" columns="narrow" trailingLabel="Remove">
                     <AnimatePresence initial={false}>
@@ -298,11 +307,11 @@ export function Uploader({ header, appUrl }: { header: ReactNode; appUrl: string
                         >
                           <button
                             type="button"
-                            className="label -m-3 p-3 underline-offset-4 hover:underline"
+                            className="label -m-3 p-3"
                             aria-label={`Remove ${picked.name}`}
                             onClick={() => setFiles((current) => current.filter((file) => file.key !== picked.key))}
                           >
-                            Remove
+                            <span className="link-wipe">Remove</span>
                           </button>
                         </FileRow>
                       ))}
@@ -326,7 +335,6 @@ export function Uploader({ header, appUrl }: { header: ReactNode; appUrl: string
                     id="message"
                     label="Message"
                     hint="Optional"
-                    rows={3}
                     maxLength={MAX_MESSAGE_LENGTH}
                     value={options.message}
                     onChange={(event) => setOptions({ ...options, message: event.target.value })}
@@ -342,14 +350,25 @@ export function Uploader({ header, appUrl }: { header: ReactNode; appUrl: string
                     spellCheck={false}
                     value={options.recipientEmail}
                     error={emailError}
+                    onBlur={() => setEmailTouched(true)}
                     onChange={(event) => setOptions({ ...options, recipientEmail: event.target.value })}
                   />
+                  {/*
+                    Plain text on purpose: this is a password to pass on to the
+                    recipient, not a login, so it should be readable and password
+                    managers should not offer to save it.
+                  */}
                   <Field
                     id="password"
-                    type="password"
+                    type="text"
                     label="Password"
                     hint="Optional"
-                    autoComplete="new-password"
+                    autoComplete="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    data-1p-ignore
+                    data-lpignore="true"
+                    data-bwignore
                     maxLength={MAX_PASSWORD_LENGTH}
                     value={options.password}
                     onChange={(event) => setOptions({ ...options, password: event.target.value })}
@@ -396,8 +415,8 @@ export function Uploader({ header, appUrl }: { header: ReactNode; appUrl: string
               className="gutter flex flex-1 flex-col justify-between pt-5 pb-8 md:pt-6"
             >
               <Eyebrow left="Transfer ready" right={`Expires ${formatDate(upload.result.expiresAt)}`} />
-              <h1 className="text-display py-12">Sent.</h1>
-              <div className="grid-12 rule-t gap-y-10 pt-4">
+              <Headline className="text-display py-12" lines={["Sent."]} />
+              <div className="grid-12 draw-t gap-y-10 pt-4">
                 <div className="col-span-12 lg:col-span-7">
                   <p className="label muted mb-2">Link</p>
                   <a
@@ -420,7 +439,16 @@ export function Uploader({ header, appUrl }: { header: ReactNode; appUrl: string
                           ? `Could not be sent to ${recipient}. Share the link yourself.`
                           : "Not sent"}
                     </Fact>
-                    <Fact term="Password">{options.password ? "Required" : "None"}</Fact>
+                    <Fact term="Password">
+                      {options.password ? (
+                        <span className="inline-flex flex-wrap items-baseline justify-end gap-x-4">
+                          <span className="break-all">{options.password}</span>
+                          <CopyButton text={options.password} label="Copy" />
+                        </span>
+                      ) : (
+                        "None"
+                      )}
+                    </Fact>
                   </dl>
                 </div>
                 <div className="col-span-12 flex flex-col gap-3 lg:col-span-4 lg:col-start-9">
@@ -545,9 +573,16 @@ function UploadProgress({
           left={<span aria-live="polite">{status}</span>}
           right={`${formatBytes(uploadedBytes)} of ${formatBytes(totalBytes)}`}
         />
-        <p className="text-display tabular py-8 md:py-10" aria-hidden="true">
-          <PercentFigure value={smooth} />%
-        </p>
+        <Headline
+          as="p"
+          aria-hidden
+          className="text-display tabular py-8 md:py-10"
+          lines={[
+            <>
+              <PercentFigure value={smooth} />%
+            </>,
+          ]}
+        />
       </div>
 
       <ProgressBar value={smooth} now={percent} label="Upload progress" />

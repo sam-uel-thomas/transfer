@@ -12,11 +12,13 @@ export interface UnlockState {
   error: string | null;
   /** Changes on every failed attempt so the UI can re-announce the error. */
   attempt: number;
+  /** Password accepted. The page then reloads to show the files. */
+  ok?: true;
 }
 
 /**
  * Checks the transfer password. On success it sets a signed, httpOnly cookie
- * valid for 30 minutes and reloads the page, which then shows the files.
+ * valid for 30 minutes; the page then refreshes and shows the files.
  */
 export async function unlock(previous: UnlockState, formData: FormData): Promise<UnlockState> {
   const id = String(formData.get("id") ?? "");
@@ -44,5 +46,6 @@ export async function unlock(previous: UnlockState, formData: FormData): Promise
     await db().from("transfers").update({ failed_unlocks: 0, locked_until: null }).eq("id", id);
   }
   await grantAccess(id);
-  redirect(`/t/${id}`);
+  // The client refreshes the page behind the page transition.
+  return { error: null, attempt: previous.attempt, ok: true };
 }
