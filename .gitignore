@@ -43,3 +43,7 @@ next-env.d.ts
 
 # supabase cli
 supabase/.temp/
+
+# agent instruction files (written locally by `next dev`)
+AGENTS.md
+CLAUDE.md
